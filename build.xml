@@ -1,0 +1,321 @@
+<project name="BetterJava6-OTN" default="build" basedir=".">
+
+  <property file="build.properties" />
+
+  <!-- Set up resource availability checks. -->
+  <available property="jar.jpa.exists" file="${jar.jpa}" />
+
+  <tstamp />
+
+  <target name="init" description="Initialize Better Java 6 build">
+    <mkdir dir="${dir.classes}" />
+    <mkdir dir="${dir.lib}" />
+    <mkdir dir="${dir.doc}" />
+    <mkdir dir="${dir.metainf}" />
+  </target>
+
+  <path id="classpath">
+    <pathelement location="${lib.jpa}" />
+  </path>
+
+  <path id="processorClasspath">
+    <pathelement location="${dir.output}/${dir.processing.annotations}" />
+    <pathelement path="${lib.jpa}" />
+  </path>
+
+  <path id="runTestClasspath">
+    <pathelement location="${dir.output}" />
+    <pathelement path="${lib.jpa}" />
+  </path>
+
+  <path id="javadocClasspath">
+    <pathelement location="${dir.output}" />
+    <pathelement path="${lib.jpa}" />
+  </path>
+
+  <target name="build" depends="init"
+          description="Main target for this build; builds code, but does not run processor or test against XML-described entities">
+    <echo message="*** NOTE: All code is for article illustrative purposes only." />
+    <antcall target="compileJpaCode" />
+    <antcall target="buildJaxbOrmJar" />
+    <antcall target="compileAnnotationsProcessor" />
+    <antcall target="buildDatabase" />
+    <antcall target="showDisclaimer" />
+  </target>
+
+  <target name="compileJpaCode"
+          description="Compile JPA-enabled entity classes">
+    <javac srcdir="${dir.src}"
+           includes="${dir.jpa.album}/*.java"
+           destdir="${dir.output}"
+           verbose="${javac.verbose}"
+           classpathref="classpath">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+  </target>
+
+  <target name="compileJaxbOrmClasses"
+          description="Compile JAXB-generated classes (from JPA ORM Schema)">
+    <javac srcdir="${dir.src}"
+           includes="${dir.jaxb.jpa.orm}/*.java"
+           destdir="${dir.output}"
+           verbose="${javac.verbose}"
+           classpathref="classpath">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+  </target>
+
+  <target name="buildJaxbOrmJar" depends="compileJaxbOrmClasses"
+          description="Assemble JAXB 2.0 RI-generated classes into JAR.">
+    <jar destfile="${dir.lib}/${jar.jpa-jaxb}"
+         basedir="${dir.output}"
+         includes="${dir.jaxb.jpa.orm}/*.class">
+      <manifest>
+        <attribute name="Built-By" value="${user.name}" />
+        <attribute name="Built-Date" value="${TODAY}" />
+        <attribute name="Version" value="${code.version}" />
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="compileAnnotationsProcessor"
+          description="Compile annotations processing code">
+    <javac srcdir="${dir.src}"
+           includes="${dir.processing.annotations}/*.java"
+           destdir="${dir.output}"
+           verbose="${javac.verbose}"
+           classpathref="classpath">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+  </target>
+
+  <target name="clean" description="Remove generated/build files/directories">
+    <delete dir="classes"
+            includeemptydirs="true"
+            verbose="${delete.verbose}" />
+    <delete dir="${dir.lib}" verbose="${delete.verbose}" />
+    <delete dir="${dir.classes}" />
+    <delete dir="${dir.orm.xml.generated}" verbose="${delete.verbose}" />
+    <delete dir="${dir.doc}" />
+    <delete dir="${dir.metainf}" />
+    <antcall target="cleanDatabase" />
+  </target>
+
+  <target name="buildDatabase"
+          description="Build and populate tables used by JPA entities">
+    <antcall target="cleanDatabase" />
+    <sql classpath="${db.driver.classpath}"
+         driver="${db.driver}"
+         url="${db.url}"
+         userid="${db.user}"
+         password="${db.password}">
+      <transaction src="db/createAlbumDDL.sql" />
+      <transaction src="db/populateAlbum.sql" />
+    </sql>
+  </target>
+
+  <target name="cleanDatabase"
+          description="Remove tables created for use by JPA entities">
+    <sql classpath="${db.driver.classpath}"
+         driver="${db.driver}"
+         url="${db.url}"
+         userid="${db.user}"
+         password="${db.password}"
+         onerror="continue">
+     <transaction src="db/removeAlbumDDL.sql" />
+   </sql>
+  </target>
+
+  <target name="javadoc"
+          description="Build Javadoc-based API documentation for example code.">
+    <javadoc sourcepath="${dir.src}"
+             destdir="${dir.doc}"
+             classpathref="javadocClasspath"
+             windowtitle="Javadoc-generated Documentation for OTN Article on Java SE 6"
+             private="true">
+      <doctitle><![CDATA[<h1>Better JPA, Better JAXB, and Better Annotations Processing with Java SE 6</h1>]]></doctitle>
+      <bottom><![CDATA[<em>Documentation for code included with OTN article <strong>Better JPA, Better JAXB, and Better Annotations Processing with Java SE 6</strong></em>]]></bottom>
+    </javadoc>
+  </target>
+
+  <target name="runAnnotationsProcessor" depends="build"
+          description="Run annotation processor over sample JPA-based code">
+    <mkdir dir="${dir.processing.output}" />
+    <mkdir dir="${dir.orm.xml.generated}" />
+    <javac srcdir="${dir.src}/${dir.jpa.album}"
+           includes="*.java"
+           destdir="${dir.processing.output}"
+           verbose="${javac.apt.verbose}"
+           classpathref="processorClasspath">
+      <compilerarg value="-processor" />
+      <compilerarg value="marx.apt.jpa.AnnotationEntityProcessor" />
+      <compilerarg value="-proc:only" />
+      <compilerarg value="-processorpath" />
+      <compilerarg value="${dir.output}${path.separator}${lib.jpa}" />
+      <compilerarg value="-AxmlOverrideAnnotations=true" />
+      <compilerarg value="-AuseUpperCaseColumnNames=true" />
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+    <copy file="${dir.processing.output}/orm.xml"
+          tofile="${dir.orm.xml.generated}/orm-generated.xml" />
+    <copy file="${dir.templates}/persistence.xml.template"
+          tofile="${dir.orm.xml.generated}/persistence.xml">
+      <filterset filtersfile="build.properties" />
+    </copy>
+  </target>
+
+  <!-- Run Java SE code test client against sample JPA-based code using
+       JPA mapping information from generated orm.xml file. -->
+  <target name="runTestDriverWithXml"
+          description="Runs Java SE JPA code test client against sample JPA-based code using orm.xml">
+
+    <!-- First, copy generated orm.xml file into META-INF directory
+         to be JAR-ed up. -->
+    <copy file="${dir.orm.xml.generated}/orm-generated.xml"
+          todir="${dir.metainf}" overwrite="true" />
+
+    <!-- Second, copy the persistence.xml file into META-INF. -->
+    <copy file="${dir.orm.xml.generated}/persistence.xml"
+          todir="${dir.metainf}" overwrite="true">
+    </copy>
+
+    <!-- Now build JAR with test driver and JPA source code and
+         bundle with the generated orm.xml file. -->
+    <jar destfile="${dir.lib}/${jar.album.orm.jar}"
+         basedir="${dir.output}"
+         includes="${dir.jpa.album}/*.class">
+      <fileset dir="${basedir}" includes="${dir.metainf}/*.xml" />
+      <manifest>
+        <attribute name="Built-By" value="${user.name}" />
+        <attribute name="Built-Date" value="${TODAY}" />
+        <attribute name="Version" value="${code.version}" />
+        <attribute name="Main-Class" value="dustin.jpa.StandardTest" />
+        <attribute name="Class-Path"
+                   value="${jar.jpa} ${jar.toplink} ${db.driver.classpath.name}" />
+      </manifest>
+    </jar>
+
+    <!-- Copy dependency JARs into same directory for easy class-path
+         access by this executable JAR.  The 'clean' target removes
+         all contents of this JAR directory, including these copied
+         JARs. -->
+    <copy file="${lib.jpa}" todir="${dir.lib}" />
+    <copy file="${lib.toplink}" todir="${dir.lib}" failonerror="false" />
+    <copy file="${db.driver.classpath}" todir="${dir.lib}" />
+    <java jar="${dir.lib}/${jar.album.orm.jar}" fork="true" />
+  </target>
+
+  <!-- Run entire example.  This is not the default target. -->
+  <target name="makeItSo"
+          description="Main target for easy running of code">
+    <antcall target="runAnnotationsProcessor" />
+    <antcall target="runTestDriverWithXml" />
+  </target>
+
+  <target name="echo"
+          description="Displays properties used in this build file">
+    <echo message="user.home                     = ${user.home}" />
+    <echo message="user.name                     = ${user.name}" />
+    <echo message="TODAY                         = ${TODAY}" />
+    <echo message="basedir                       = ${basedir}" />
+    <echo message="java.version                  = ${java.version}" />
+    <echo message="java.home                     = ${java.home}" />
+    <echo message="java.vendor                   = ${java.vendor}" />
+    <echo message="java.class.version            = ${java.class.version}" />
+    <echo message="java.class.path               = ${java.class.path}" />
+    <echo message="os.name                       = ${os.name}" />
+    <echo message="os.version                    = ${os.version}" />
+    <echo message="file.separator                = ${file.separator}" />
+    <echo message="path.separator                = ${path.separator}" />
+    <echo message="line.separator                = ${line.separator}" />
+    <echo message=" " />
+    <echo message="delete.onexit                 = ${delete.onexit}" />
+    <echo message="delete.verbose                = ${delete.verbose}" />
+    <echo message="javac.deprecation             = ${javac.deprecation}" />
+    <echo message="javac.verbose                 = ${javac.verbose}" />
+    <echo message="lib.jpa (JPA libraries)       = ${lib.jpa}" />
+    <echo message="dir.lib                       = ${dir.lib}" />
+    <echo message="dir.src                       = ${dir.src}" />
+    <echo message="dir.output                    = ${dir.output}" />
+    <echo message="dir.metainf                   = ${dir.metainf}" />
+    <echo message="dir.templates                 = ${dir.templates}" />
+    <echo message="dir.jpa.album                 = ${dir.jpa.album}" />
+    <echo message="dir.processing.annotations    = ${dir.processing.annotations}" />
+    <echo message="dir.jaxb.jpa.orm              = ${dir.jaxb.jpa.orm}" />
+    <echo message="class.testdriver              = ${class.testdriver}" />
+    <echo message="jar.jpa-jaxb                  = ${jar.jpa-jaxb}" />
+    <echo message="" />
+    <echo message="db.driver.classpath           = ${db.driver.classpath}" />
+    <echo message="db.driver                     = ${db.driver}" />
+    <echo message="db.user                       = ${db.user}" />
+    <echo message="db.password                   = ${db.password}" />
+    <echo message="db.url                        = ${db.url}" />
+    <echo message="" />
+    <antcall target="howToShowTargets" />
+  </target>
+
+  <target name="help"
+          description="Provides details on using this script and the built application">
+    <echo message="This is help on this build and using the built application" />
+    <antcall target="howToShowTargets" />
+    <antcall target="howToRunScript" />
+    <antcall target="showDisclaimer" />
+  </target>
+
+  <target name="showDisclaimer"
+          description="Remind user that this is not production quality code.">
+    <echo message="The annotation processor implemented in these code examples" />
+    <echo message="is only meant to illustrate topics covered in the article" />
+    <echo message="and is not intended to be used in production software.  The" />
+    <echo message="code is limited to processing only a subset of the available" />
+    <echo message="JPA annotations and focuses on those used in the example JPA" />
+    <echo message="annotated classes included in this example (the Album classes)." />
+  </target>
+
+  <target name="howToShowTargets">
+    <echo message="Use 'ant -p' to see 'main' targets and their descriptions" />
+  </target>
+
+  <target name="howToRunItAll"
+          description="Describes steps to run examples.">
+    <echo message="1. Ensure that you have Java SE 6 installed as default" />
+    <echo message="     (run 'java -version' and look for at least 1.6.0)" />
+    <echo message="2. Ensure that you have a JPA implementation available." />
+    <echo message="   The reference implementation, TopLink Essentials, can" />
+    <echo message="   be downloaded from the GlassFish site at " />
+    <echo message="     https://glassfish.dev.java.net//downloads/persistence/JavaPersistence.html" />
+    <echo message="   or from the Oracle site at " />
+    <echo message="     http://www.oracle.com/technology/products/ias/toplink/jpa/download.html" />
+    <echo message="3. Ensure that the build.properties file has correct settings" />
+    <echo message="   for your environment (location of JPA implementation along" />
+    <echo message="   with the four database connection parameters and the" />
+    <echo message="   location of your database's JDBC driver)" />
+    <echo message="4. Build all necessary code using this build's default target" />
+    <echo message="     (run 'ant build')" />
+    <echo message="5. Run the JPA annotations processor code against the sample" />
+    <echo message="   JPA code using this build's 'runAnnotationsProcessor'" />
+    <echo message="     (run 'ant runAnnotationsProcessor')" />
+    <echo message="6. Run the test driver using the build's target called " />
+    <echo message="   runTestDriverWithXml" />
+    <echo message="     (run 'ant runTestDriverWithXml')" />
+    <echo message=" " />
+    <echo message="OTHER NOTES:" />
+    <echo message="* You do not need to use JAXB directly for generating" />
+    <echo message="  Java classes for writing to JPA orm.xml because those" />
+    <echo message="  generated classes are already in the 'src' directory." />
+    <echo message="  With Java SE 6 installed (Step #1), the runtime JAXB" />
+    <echo message="  support should be readily available as well.  You can" />
+    <echo message="  verify this by running 'xjc -version' (may need to change" />
+    <echo message="  to your Java installation 'bin' directory)." />
+    <echo message="* If you do wish to run the JAXB 2.0 reference implementation" />
+    <echo message="  that is included with Java SE 6, be sure to download the" />
+    <echo message="  orm_1_0.xsd XML Schema file as described in the README file" />
+    <echo message="  and follow the instructions in the README file (including" />
+    <echo message="  running the command like this: " />
+    <echo message="     xjc -p marx.jpa.persistence.jaxb -d C:\jpaJaxb\src orm_1_0.xsd" />
+    <echo message="* There is a 'makeItSo' target that does everything" />
+    <echo message="  (builds code, runs annotations processor, and runs test" />
+    <echo message="  driver, but this runs everything so quickly that it is" />
+    <echo message="  difficult to determine what is happening." />
+  </target>
+</project>
