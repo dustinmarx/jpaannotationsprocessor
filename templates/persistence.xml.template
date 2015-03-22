@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<persistence xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_1_0.xsd"
+             version="1.0" xmlns="http://java.sun.com/xml/ns/persistence">
+  <persistence-unit name="Album_Unit" transaction-type="RESOURCE_LOCAL">
+    <mapping-file>META-INF/orm-generated.xml</mapping-file>
+    <class>dustin.jpa.Album</class>
+    <class>dustin.jpa.Genre</class>
+    <class>dustin.jpa.Individual</class>
+    <class>dustin.jpa.Label</class>
+    <class>dustin.jpa.Rating</class>
+    <class>dustin.jpa.Artist</class>
+    <properties>
+      <property name="toplink.logging.level" value="INFO" /> 
+      <property name="toplink.logging.timestamp" value="true" /> 
+      <property name="toplink.logging.exceptions" value="true" /> 
+      <property name="toplink.jdbc.driver" value="@db.driver@" /> 
+      <property name="toplink.jdbc.url" value="@db.url@" /> 
+      <property name="toplink.jdbc.user" value="@db.user@" /> 
+      <property name="toplink.jdbc.password" value="@db.password@" /> 
+    </properties>
+  </persistence-unit>
+</persistence>
