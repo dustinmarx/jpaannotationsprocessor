@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<entity-mappings xmlns="http://java.sun.com/xml/ns/persistence/orm" version="1.0">
+    <persistence-unit-metadata>
+        <xml-mapping-metadata-complete/>
+    </persistence-unit-metadata>
+    <named-native-query name="findAllAlbums">
+        <query>SELECT * FROM ALBUM</query>
+    </named-native-query>
+    <named-native-query name="oracle-getDbDate">
+        <query>SELECT sysdate FROM dual</query>
+    </named-native-query>
+    <entity name="Album" class="dustin.jpa.Album">
+        <association-override name="label">
+            <join-column name="Label"/>
+        </association-override>
+        <attributes>
+            <id name="id"/>
+            <basic name="bandName">
+                <column name="band_name"/>
+            </basic>
+            <many-to-many target-entity="dustin.jpa.Genre" name="genres">
+                <join-table name="album_genre">
+                    <join-column referenced-column-name="id" name="album_id"/>
+                    <inverse-join-column referenced-column-name="label" name="genre_label"/>
+                </join-table>
+            </many-to-many>
+            <transient name="somethingNotPersisted"/>
+        </attributes>
+    </entity>
+    <entity name="Artist" class="dustin.jpa.Artist">
+        <discriminator-value>ARTIST</discriminator-value>
+    </entity>
+    <entity name="Genre" class="dustin.jpa.Genre">
+        <attributes>
+            <id name="label"/>
+            <many-to-many target-entity="dustin.jpa.Album" name="albums" mapped-by="genres"/>
+        </attributes>
+    </entity>
+    <entity name="Individual" class="dustin.jpa.Individual">
+        <inheritance strategy="SINGLE_TABLE"/>
+        <discriminator-column name="ROLE" length="31" discriminator-type="STRING"/>
+        <sequence-generator sequence-name="INDIVIDUAL_SEQ" name="INDIVIDUAL_SEQ" initial-value="1" allocation-size="1"/>
+        <attributes>
+            <id name="id">
+                <generated-value strategy="SEQUENCE" generator="INDIVIDUAL_SEQ"/>
+            </id>
+            <basic name="gender">
+                <enumerated>STRING</enumerated>
+            </basic>
+        </attributes>
+    </entity>
+    <entity name="Label" class="dustin.jpa.Label">
+        <attributes>
+            <id name="id"/>
+        </attributes>
+    </entity>
+    <entity name="Rating" class="dustin.jpa.Rating">
+        <attributes>
+            <id name="label"/>
+            <basic name="ratingDescription">
+                <column name="RATING_DESCRIPTION"/>
+            </basic>
+        </attributes>
+    </entity>
+</entity-mappings>
