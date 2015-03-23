@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<!--
+   Package documentation for marx.apt.jpa package that accompanies
+   OTN article "Better JPA, Better JAXB, and Better Annotations
+   Processing with Java SE 6."
+-->
+</head>
+<body bgcolor="white">
+
+<p>The package <code>marx.apt.jpa</code> includes the code for
+processing JPA in-source annotations and writing out an
+equivalent <code>orm.xml</code> object-relational mapping file.
+This code accompanies the article "Better JPA, Better JAXB, and
+Better Annotations Processing" published on Oracle Technology
+Network (OTN).</p>
+
+<p>The JPA annotations processed by code in this package are only
+a subset of the available JPA annotations.  This package's code
+essentially only processes annotations used in the same JPA-based
+code in the <code>dustin.jpa</code> package.</p>
+
+<h2>Disclaimer / Caution</h2>
+
+This code is not production ready. This code is intended solely
+as <strong>proof of concept</strong> code and to illustrate
+concepts discussed in the previously referenced OTN article.
+Any production code would need to be enhanced to support additional
+JPA annotations, would need to be refactored, and would need
+more thorough testing.
+
+
+<h2>Related Documentation</h2>
+
+Additional details on JPA and upon annotations processing can be
+found in these resources:
+<ul>
+<li>OTN article "<strong>Better JPA, Better JAXB, and Better Annotations
+    Processing with Java SE 6</strong>"</li>
+<li>
+      <a href="http://www.oracle.com/technology/products/ias/toplink/jpa/resources/toplink-jpa-annotations.html">OTN JPA Annotations Reference</a></li>
+<li><a href="http://java.sun.com/javase/6/">Java SE 6</a></li>
+<li><a href="http://java.sun.com/developer/technicalArticles/J2SE/Desktop/javase6/beta2.html">What's New in Java SE 6</a></li>
+<li><a href="http://www.oracle.com/technology/pub/articles/hunter_meta_3.html">Making the Most of Java's Metadata, Part 3: Advanced Processing</a></li>
+</ul>
+
+<!-- Put @see and @since tags down here. -->
+
+@see dustin.jpa
+@see marx.jpa.persistence.jaxb
+@see javax.annotation.processing
+@see javax.lang.model.element
+@see javax.lang.model.type
+@see javax.xml.bind
+
+</body>
+</html>
